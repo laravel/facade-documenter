@@ -18,14 +18,6 @@ use PHPStan\PhpDocParser\Parser\PhpDocParser;
 use PHPStan\PhpDocParser\Parser\TokenIterator;
 use PHPStan\PhpDocParser\Parser\TypeParser;
 
-/*
- * Update the docblocks:
- * $ php -f ./bin/facades.php
- *
- * Lint the docblocks:
- * $ php -f ./bin/facades.php -- --lint
- */
-
 $linting = in_array('--lint', $argv);
 
 collect($argv)
