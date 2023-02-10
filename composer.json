@@ -4,7 +4,7 @@
     "license": "MIT",
     "bin": "facade.php",
     "require": {
-        "illuminate/support": "^9.51",
+        "illuminate/support": "^9.51|^10.0",
         "phpstan/phpdoc-parser": "^1.16"
     },
     "composer-runtime-api": "^2.2"
