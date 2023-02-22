@@ -242,7 +242,7 @@ function resolveDocblockTypes($method, $typeNode)
 
         foreach ([$typeNode->name, $guessedFqcn] as $name) {
             if (class_exists($name)) {
-                return (string) $name;
+                return Str::start((string) $name, '\\');
             }
 
             if (interface_exists($name)) {
