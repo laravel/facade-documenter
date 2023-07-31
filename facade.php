@@ -388,30 +388,39 @@ function isKnownOptionalDependency($type)
 /**
  * Resolve the declared type.
  *
+ * @param  \ReflectionMethodDecorator  $method
  * @param  \ReflectionType|null  $type
  * @return string|null
  */
-function resolveType($type)
+function resolveType($method, $type)
 {
     if ($type instanceof ReflectionIntersectionType) {
         return collect($type->getTypes())
-            ->map(resolveType(...))
+            ->map(fn ($type) => resolveType($method, $type))
             ->filter()
             ->join('&');
     }
 
     if ($type instanceof ReflectionUnionType) {
         return collect($type->getTypes())
-            ->map(resolveType(...))
+            ->map(fn ($type) => resolveType($method, $type))
             ->filter()
             ->join('|');
     }
 
     if ($type instanceof ReflectionNamedType && $type->getName() === 'null') {
-        return ($type->isBuiltin() ? '' : '\\').$type->getName();
+        return 'null';
     }
 
-    if ($type instanceof ReflectionNamedType && $type->getName() !== 'null') {
+    if ($type instanceof ReflectionNamedType) {
+        if ($type->getName() === 'static') {
+            return '\\'.$method->sourceClass()->getName();
+        }
+
+        if ($type->getName() === 'self') {
+            return '\\'.$method->getDeclaringClass()->getName();
+        }
+
         return ($type->isBuiltin() ? '' : '\\').$type->getName().($type->allowsNull() ? '|null' : '');
     }
 
@@ -582,9 +591,9 @@ function normaliseDetails($method)
                     ? $parameter->getDefaultValue()
                     : "❌ Unknown default for [{$parameter->getName()}] in [{$parameter->getDeclaringClass()?->getName()}::{$parameter->getDeclaringFunction()->getName()}] ❌",
                 'variadic' => $parameter->isVariadic(),
-                'type' => resolveDocParamType($method, $parameter) ?? resolveType($parameter->getType()) ?? 'void',
+                'type' => resolveDocParamType($method, $parameter) ?? resolveType($method, $parameter->getType()) ?? 'void',
             ]),
-        'returns' => resolveReturnDocType($method) ?? resolveType($method->getReturnType()) ?? 'void',
+        'returns' => resolveReturnDocType($method) ?? resolveType($method, $method->getReturnType()) ?? 'void',
     ];
 }
 
