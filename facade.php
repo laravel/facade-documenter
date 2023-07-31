@@ -76,7 +76,7 @@ collect($argv)
         /**
         {$methods->join(PHP_EOL)}
          *
-        {$proxies->map(fn ($class) => " * @see {$class}")->merge($directMixins->map(fn ($class) => " * @mixin {$class}"))->join(PHP_EOL)}
+        {$proxies->map(fn ($class) => " * @see {$class}")->merge($proxies->isNotEmpty() && $directMixins->isNotEmpty() ? [' *'] : [])->merge($directMixins->map(fn ($class) => " * @mixin {$class}"))->join(PHP_EOL)}
          */
         PHP;
 
@@ -137,7 +137,7 @@ function resolveDocParamType($method, $parameter)
     $paramTypeNode = collect(parseDocblock($method->getDocComment())->getParamTagValues())
         ->firstWhere('parameterName', '$'.$parameter->getName());
 
-    // As we didn't find a param type, we will now recursivly check if the prototype has a value specified...
+    // As we didn't find a param type, we will now recursively check if the prototype has a value specified...
 
     if ($paramTypeNode === null) {
         try {
@@ -449,7 +449,7 @@ function resolveDocTags($docblock, $tag)
 }
 
 /**
- * Recursivly resolve docblock mixins.
+ * Recursively resolve docblock mixins.
  *
  * @param  \ReflectionClass  $class
  * @return \Illuminate\Support\Collection<\ReflectionClass>
