@@ -238,6 +238,10 @@ function resolveDocblockTypes($method, $typeNode)
             return 'string';
         }
 
+        if ($typeNode->name === 'list') {
+            return 'array';
+        }
+
         $guessedFqcn = resolveClassImports($method->getDeclaringClass())->get($typeNode->name) ?? '\\'.$method->getDeclaringClass()->getNamespaceName().'\\'.$typeNode->name;
 
         foreach ([$typeNode->name, $guessedFqcn] as $name) {
