@@ -2,7 +2,7 @@
 
 ```sh
 # Configure composer
-composer config repositories.facade-documenter vcs git@github.com:laravel-labs/facade-documenter.git
+composer config repositories.facade-documenter vcs git@github.com:laravel/facade-documenter.git
 
 # Install the package
 composer require --dev laravel/facade-documenter:dev-main
