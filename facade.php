@@ -402,9 +402,10 @@ function handleUnknownIdentifierType($method, $typeNode)
         return 'object';
     }
 
-    echo 'Found unknown type: '.$typeNode->name;
+    echo 'Unknown doctype ['.$typeNode->name.'] encountered, which is likely a generic, on method ['.$method->getDeclaringClass()->getName().'::'.$method->getName().'].';
     echo PHP_EOL;
-    echo 'You may need to update the `handleUnknownIdentifierType` to handle this new type / generic.';
+    echo 'Falling back to native type declaration. You may update the `handleUnknownIdentifierType` method to improve the generated type.';
+    echo PHP_EOL;
     echo PHP_EOL;
 }
 
