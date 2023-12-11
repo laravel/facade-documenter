@@ -3,9 +3,19 @@
 require_once $_composer_autoload_path ?? __DIR__.'/../vendor/autoload.php';
 
 use Illuminate\Support\Str;
+use PHPStan\PhpDocParser\Ast\ConstExpr\ConstExprArrayNode;
+use PHPStan\PhpDocParser\Ast\ConstExpr\ConstExprFalseNode;
+use PHPStan\PhpDocParser\Ast\ConstExpr\ConstExprFloatNode;
+use PHPStan\PhpDocParser\Ast\ConstExpr\ConstExprIntegerNode;
+use PHPStan\PhpDocParser\Ast\ConstExpr\ConstExprNullNode;
+use PHPStan\PhpDocParser\Ast\ConstExpr\ConstExprStringNode;
+use PHPStan\PhpDocParser\Ast\ConstExpr\ConstExprTrueNode;
+use PHPStan\PhpDocParser\Ast\ConstExpr\ConstFetchNode;
+use PHPStan\PhpDocParser\Ast\ConstExpr\QuoteAwareConstExprStringNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\CallableTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\ConditionalTypeNode;
+use PHPStan\PhpDocParser\Ast\Type\ConstTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\GenericTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\IntersectionTypeNode;
@@ -164,6 +174,7 @@ function resolveReturnDocType($method)
 {
     $returnTypeNode = array_values(parseDocblock($method->getDocComment())->getReturnTagValues())[0] ?? null;
 
+
     if ($returnTypeNode === null) {
         return null;
     }
@@ -275,6 +286,43 @@ function resolveDocblockTypes($method, $typeNode)
 
     if ($typeNode instanceof CallableTypeNode) {
         return resolveDocblockTypes($method, $typeNode->identifier);
+    }
+
+    if ($typeNode instanceof ConstTypeNode) {
+        if ($typeNode->constExpr instanceof ConstExprStringNode || $typeNode->constExpr instanceof QuoteAwareConstExprStringNode) {
+            return 'string';
+        }
+
+        if ($typeNode->constExpr instanceof ConstExprIntegerNode) {
+            return 'int';
+        }
+
+        if ($typeNode->constExpr instanceof ConstExprNullNode) {
+            return 'null';
+        }
+
+        if ($typeNode->constExpr instanceof ConstExprFloatNode) {
+            return 'float';
+        }
+
+        if ($typeNode->constExpr instanceof ConstExprFalseNode) {
+            return 'false';
+        }
+
+        if ($typeNode->constExpr instanceof ConstExprTrueNode) {
+            return 'true';
+        }
+
+        if ($typeNode->constExpr instanceof ConstExprArrayNode) {
+            return 'false';
+        }
+
+        echo 'Unhandled constant type: '.$typeNode->constExpr::class;
+        echo PHP_EOL;
+        echo 'You may need to update the `resolveDocblockTypes` to handle this type.';
+        echo PHP_EOL;
+
+        return;
     }
 
     echo 'Unhandled type: '.$typeNode::class;
@@ -425,7 +473,7 @@ function resolveType($method, $type)
             return '\\'.$method->getDeclaringClass()->getName();
         }
 
-        return ($type->isBuiltin() ? '' : '\\').$type->getName().($type->allowsNull() ? '|null' : '');
+        return ($type->isBuiltin() ? '' : '\\').$type->getName().(($type->allowsNull() && $type->getName() !== 'mixed') ? '|null' : '');
     }
 
     return null;
