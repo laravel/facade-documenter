@@ -174,7 +174,6 @@ function resolveReturnDocType($method)
 {
     $returnTypeNode = array_values(parseDocblock($method->getDocComment())->getReturnTagValues())[0] ?? null;
 
-
     if ($returnTypeNode === null) {
         return null;
     }
@@ -202,133 +201,148 @@ function parseDocblock($docblock)
  *
  * @param  \ReflectionMethodDecorator  $method
  * @param  \PHPStan\PhpDocParser\Ast\Type\TypeNode  $typeNode
- * @return string
+ * @return string|null
  */
-function resolveDocblockTypes($method, $typeNode)
+function resolveDocblockTypes($method, $typeNode, $depth = 1)
 {
-    if ($typeNode instanceof UnionTypeNode) {
-        return '('.collect($typeNode->types)
-            ->map(fn ($node) => resolveDocblockTypes($method, $node))
-            ->unique()
-            ->implode('|').')';
-    }
+    try {
+        if ($typeNode instanceof UnionTypeNode) {
+            return '('.collect($typeNode->types)
+                ->map(fn ($node) => resolveDocblockTypes($method, $node, $depth + 1))
+                ->unique()
+                ->implode('|').')';
+        }
 
-    if ($typeNode instanceof IntersectionTypeNode) {
-        return '('.collect($typeNode->types)
-            ->map(fn ($node) => resolveDocblockTypes($method, $node))
-            ->unique()
-            ->implode('&').')';
-    }
+        if ($typeNode instanceof IntersectionTypeNode) {
+            return '('.collect($typeNode->types)
+                ->map(fn ($node) => resolveDocblockTypes($method, $node, $depth + 1))
+                ->unique()
+                ->implode('&').')';
+        }
 
-    if ($typeNode instanceof GenericTypeNode) {
-        return resolveDocblockTypes($method, $typeNode->type);
-    }
+        if ($typeNode instanceof GenericTypeNode) {
+            return resolveDocblockTypes($method, $typeNode->type, $depth + 1);
+        }
 
-    if ($typeNode instanceof ThisTypeNode) {
-        return '\\'.$method->sourceClass()->getName();
-    }
-
-    if ($typeNode instanceof ArrayTypeNode) {
-        return resolveDocblockTypes($method, $typeNode->type).'[]';
-    }
-
-    if ($typeNode instanceof IdentifierTypeNode) {
-        if ($typeNode->name === 'static') {
+        if ($typeNode instanceof ThisTypeNode) {
             return '\\'.$method->sourceClass()->getName();
         }
 
-        if ($typeNode->name === 'self') {
-            return '\\'.$method->getDeclaringClass()->getName();
+        if ($typeNode instanceof ArrayTypeNode) {
+            return resolveDocblockTypes($method, $typeNode->type, $depth + 1).'[]';
         }
 
-        if (isBuiltIn($typeNode->name)) {
-            return (string) $typeNode;
-        }
-
-        if ($typeNode->name === 'class-string') {
-            return 'string';
-        }
-
-        if ($typeNode->name === 'list') {
-            return 'array';
-        }
-
-        $guessedFqcn = resolveClassImports($method->getDeclaringClass())->get($typeNode->name) ?? '\\'.$method->getDeclaringClass()->getNamespaceName().'\\'.$typeNode->name;
-
-        foreach ([$typeNode->name, $guessedFqcn] as $name) {
-            if (class_exists($name)) {
-                return Str::start((string) $name, '\\');
+        if ($typeNode instanceof IdentifierTypeNode) {
+            if ($typeNode->name === 'static') {
+                return '\\'.$method->sourceClass()->getName();
             }
 
-            if (interface_exists($name)) {
-                return (string) $name;
+            if ($typeNode->name === 'self') {
+                return '\\'.$method->getDeclaringClass()->getName();
             }
 
-            if (enum_exists($name)) {
-                return (string) $name;
+            if (isBuiltIn($typeNode->name)) {
+                return (string) $typeNode;
             }
 
-            if (isKnownOptionalDependency($name)) {
-                return (string) $name;
+            if ($typeNode->name === 'class-string') {
+                return 'string';
             }
+
+            if ($typeNode->name === 'list') {
+                return 'array';
+            }
+
+            $guessedFqcn = resolveClassImports($method->getDeclaringClass())->get($typeNode->name) ?? '\\'.$method->getDeclaringClass()->getNamespaceName().'\\'.$typeNode->name;
+
+            foreach ([$typeNode->name, $guessedFqcn] as $name) {
+                if (class_exists($name)) {
+                    return Str::start((string) $name, '\\');
+                }
+
+                if (interface_exists($name)) {
+                    return (string) $name;
+                }
+
+                if (enum_exists($name)) {
+                    return (string) $name;
+                }
+
+                if (isKnownOptionalDependency($name)) {
+                    return (string) $name;
+                }
+            }
+
+            return handleUnknownIdentifierType($method, $typeNode);
         }
 
-        return handleUnknownIdentifierType($method, $typeNode);
-    }
-
-    if ($typeNode instanceof ConditionalTypeNode) {
-        return handleConditionalType($method, $typeNode);
-    }
-
-    if ($typeNode instanceof NullableTypeNode) {
-        return '?'.resolveDocblockTypes($method, $typeNode->type);
-    }
-
-    if ($typeNode instanceof CallableTypeNode) {
-        return resolveDocblockTypes($method, $typeNode->identifier);
-    }
-
-    if ($typeNode instanceof ConstTypeNode) {
-        if ($typeNode->constExpr instanceof ConstExprStringNode || $typeNode->constExpr instanceof QuoteAwareConstExprStringNode) {
-            return 'string';
+        if ($typeNode instanceof ConditionalTypeNode) {
+            return handleConditionalType($method, $typeNode);
         }
 
-        if ($typeNode->constExpr instanceof ConstExprIntegerNode) {
-            return 'int';
+        if ($typeNode instanceof NullableTypeNode) {
+            return '?'.resolveDocblockTypes($method, $typeNode->type, $depth + 1);
         }
 
-        if ($typeNode->constExpr instanceof ConstExprNullNode) {
-            return 'null';
+        if ($typeNode instanceof CallableTypeNode) {
+            return resolveDocblockTypes($method, $typeNode->identifier, $depth + 1);
         }
 
-        if ($typeNode->constExpr instanceof ConstExprFloatNode) {
-            return 'float';
+        if ($typeNode instanceof ConstTypeNode) {
+            if ($typeNode->constExpr instanceof ConstExprStringNode) {
+                return 'string';
+            }
+
+            if ($typeNode->constExpr instanceof ConstExprIntegerNode) {
+                return 'int';
+            }
+
+            if ($typeNode->constExpr instanceof ConstExprNullNode) {
+                return 'null';
+            }
+
+            if ($typeNode->constExpr instanceof ConstExprFloatNode) {
+                return 'float';
+            }
+
+            if ($typeNode->constExpr instanceof ConstExprFalseNode) {
+                return 'false';
+            }
+
+            if ($typeNode->constExpr instanceof ConstExprTrueNode) {
+                return 'true';
+            }
+
+            if ($typeNode->constExpr instanceof ConstExprArrayNode) {
+                return 'false';
+            }
+
+            $class = $typeNode->constExpr::class;
+            throw new UnresolvableType('resolveDocblockTypes', <<<MESSAGE
+                Unknown constant type [{$class}] encountered.
+                MESSAGE);
         }
 
-        if ($typeNode->constExpr instanceof ConstExprFalseNode) {
-            return 'false';
+        $class = $typeNode::class;
+
+        throw new UnresolvableType('resolveDocblockTypes', <<<MESSAGE
+            Unknown type node [{$class}] encountered.
+            MESSAGE);
+    } catch (UnresolvableType $e) {
+        if ($depth > 1) {
+            throw $e;
         }
 
-        if ($typeNode->constExpr instanceof ConstExprTrueNode) {
-            return 'true';
-        }
-
-        if ($typeNode->constExpr instanceof ConstExprArrayNode) {
-            return 'false';
-        }
-
-        echo 'Unhandled constant type: '.$typeNode->constExpr::class;
+        echo $e->getMessage();
         echo PHP_EOL;
-        echo 'You may need to update the `resolveDocblockTypes` to handle this type.';
+        echo 'You can safely ignore this message if there is a native type declartion in place, which will be used as a fallback.';
+        echo PHP_EOL;
+        echo "You may tweak the {$e->method} function of the facade-documenter if a fix is required.";
+        echo PHP_EOL;
         echo PHP_EOL;
 
-        return;
+        return null;
     }
-
-    echo 'Unhandled type: '.$typeNode::class;
-    echo PHP_EOL;
-    echo 'You may need to update the `resolveDocblockTypes` to handle this type.';
-    echo PHP_EOL;
 }
 
 /**
@@ -347,8 +361,9 @@ function handleConditionalType($method, $typeNode)
         return 'mixed';
     }
 
-    echo 'Found unknown conditional type. You will need to update the `handleConditionalType` to handle this new conditional type.';
-    echo PHP_EOL;
+    throw new UnresolvableType('handleConditionalType', <<<MESSAGE
+        Unknown conditional type encountered on method [{$method->getDeclaringClass()->getName()}::{$method->getName()}].
+        MESSAGE);
 }
 
 /**
@@ -402,11 +417,9 @@ function handleUnknownIdentifierType($method, $typeNode)
         return 'object';
     }
 
-    echo 'Unknown doctype ['.$typeNode->name.'] encountered, which is likely a generic, on method ['.$method->getDeclaringClass()->getName().'::'.$method->getName().'].';
-    echo PHP_EOL;
-    echo 'Falling back to native type declaration. You may update the `handleUnknownIdentifierType` method to improve the generated type.';
-    echo PHP_EOL;
-    echo PHP_EOL;
+    throw new UnresolvableType('handleUnknownIdentifierType', <<<MESSAGE
+        Unknown doctype [{$typeNode->name}] encountered, which is likely a generic, on method [{$method->getDeclaringClass()->getName()}::{$method->getName()}].
+        MESSAGE);
 }
 
 /**
@@ -679,7 +692,7 @@ function resolveClassImports($class)
         ->filter(fn ($line) => preg_match('/^use [A-Za-z0-9\\\\]+( as [A-Za-z0-9]+)?;$/', $line) === 1)
         ->map(fn ($line) => Str::of($line)->after('use ')->before(';'))
         ->mapWithKeys(fn ($class) => [
-            ($class->contains(' as ') ? $class->after(' as ') : $class->classBasename())->toString() => $class->start('\\')->before(' as ')->toString(),
+            ((string) ($class->contains(' as ') ? $class->after(' as ') : $class->classBasename())) => $class->start('\\')->before(' as ')->toString(),
         ]);
 }
 
@@ -798,5 +811,13 @@ class DynamicParameter
     public function getDefaultValue()
     {
         return null;
+    }
+}
+
+class UnresolvableType extends Exception
+{
+    public function __construct(public string $method, string $message)
+    {
+        parent::__construct($message);
     }
 }
