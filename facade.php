@@ -128,7 +128,12 @@ function resolveDocSees($class)
  */
 function resolveDocMethods($class)
 {
-    return resolveDocTags($class->getDocComment() ?: '', '@method')
+    $docs = collect($class->getTraits())
+        ->map(fn (ReflectionClass $trait) => $trait->getDocComment())
+        ->prepend($class->getDocComment())
+        ->filter();
+
+    return resolveDocTags($docs, '@method')
         ->map(fn ($tag) => Str::squish($tag))
         ->map(fn ($tag) => Str::before($tag, ')').')');
 }
@@ -494,22 +499,20 @@ function resolveType($method, $type)
 /**
  * Resolve the docblock tags.
  *
- * @param  string  $docblock
+ * @param  string|array  $docblock
  * @param  string  $tag
  * @return \Illuminate\Support\Collection<string>
  */
 function resolveDocTags($docblock, $tag)
 {
-    return Str::of($docblock)
-        ->explode("\n")
-        ->skip(1)
-        ->reverse()
-        ->skip(1)
-        ->reverse()
-        ->map(fn ($line) => ltrim($line, ' \*'))
-        ->filter(fn ($line) => str_starts_with($line, $tag))
-        ->map(fn ($line) => Str::of($line)->after($tag)->trim()->toString())
-        ->values();
+    return collect($docblock)
+        ->map(fn ($docblock) => Str::of($docblock)
+            ->explode("\n")
+            ->filter(fn ($line) => preg_match('/^\s*\*\s+'.preg_quote($tag).'/', $line))
+            ->map(fn ($line) => Str::of($line)->after($tag)->trim()->toString())
+            ->values()
+        )
+        ->flatten();
 }
 
 /**
