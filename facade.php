@@ -35,6 +35,11 @@ collect($argv)
     ->each(function ($facade) use ($linting) {
         $proxies = resolveDocSees($facade);
 
+        if ($proxies->isEmpty()) {
+            echo "Skipping [{$facade->getName()}] as no proxies were found.".PHP_EOL;
+            return;
+        }
+
         // Build a list of methods that are available on the Facade...
 
         $resolvedMethods = $proxies->map(fn ($fqcn) => new ReflectionClass($fqcn))
