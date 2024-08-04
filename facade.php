@@ -78,6 +78,11 @@ collect($argv)
 
         $directMixins = resolveDocTags($facade->getDocComment() ?: '', '@mixin');
 
+        if ($methods->isEmpty()) {
+            echo "Skipping [{$facade->getName()}] as no methods were found.".PHP_EOL;
+            return;
+        }
+
         // Generate the docblock...
 
         $docblock = <<< PHP
