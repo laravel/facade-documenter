@@ -351,7 +351,7 @@ function resolveDocblockTypes($method, $typeNode, $depth = 1)
         $class = $typeNode::class;
 
         throw new UnresolvableType('resolveDocblockTypes', <<<MESSAGE
-            Unknown constant type [{$class}] encountered when evaluating [{$method->sourceClass()->getName()}::{$method->getName()}].
+            Unknown type node [{$class}] encountered when evaluating [{$method->sourceClass()->getName()}::{$method->getName()}].
             MESSAGE);
     } catch (UnresolvableType $e) {
         if ($depth > 1) {
