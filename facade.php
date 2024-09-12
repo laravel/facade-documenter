@@ -85,7 +85,7 @@ collect($argv)
 
         // To support generics, we want to preserve any mixins on the class...
 
-        $directMixins = resolveDocTags($facade->getDocComment() ?: '', '@mixin');
+        $directMixins = resolveDocTags($facade->getDocComment() ?: '', '@mixin ');
 
         if ($methods->isEmpty()) {
             echo "Skipping [{$facade->getName()}] as no methods were found.".PHP_EOL;
@@ -131,7 +131,7 @@ exit(0);
  */
 function resolveDocSees($class)
 {
-    return resolveDocTags($class->getDocComment() ?: '', '@see')
+    return resolveDocTags($class->getDocComment() ?: '', '@see ')
         ->reject(fn ($tag) => str_starts_with($tag, 'https://'));
 }
 
@@ -143,7 +143,7 @@ function resolveDocSees($class)
  */
 function resolveDocMethods($class)
 {
-    return resolveDocTags($class->getDocComment() ?: '', '@method')
+    return resolveDocTags($class->getDocComment() ?: '', '@method ')
         ->map(fn ($tag) => Str::squish($tag))
         ->map(fn ($tag) => Str::before($tag, ')').')');
 }
@@ -547,7 +547,7 @@ function resolveDocTags($docblock, $tag)
  */
 function resolveDocMixins($class)
 {
-    return resolveDocTags($class->getDocComment() ?: '', '@mixin')
+    return resolveDocTags($class->getDocComment() ?: '', '@mixin ')
         ->map(fn ($mixin) => new ReflectionClass($mixin))
         ->flatMap(fn ($mixin) => [$mixin, ...resolveDocMixins($mixin)]);
 }
@@ -560,7 +560,7 @@ function resolveDocMixins($class)
  */
 function resolveDocParameters($method)
 {
-    return resolveDocTags($method->getDocComment() ?: '', '@param')
+    return resolveDocTags($method->getDocComment() ?: '', '@param ')
         ->map(fn ($tag) => Str::squish($tag));
 }
 
