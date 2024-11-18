@@ -400,6 +400,17 @@ function handleConditionalType($method, $typeNode)
  */
 function handleUnknownIdentifierType($method, $typeNode)
 {
+    $docblock = parseDocblock($method->getDocComment());
+    $boundTemplateType = collect($docblock->getTemplateTagValues())->firstWhere('name', $typeNode->name)->bound;
+
+    if ($boundTemplateType !== null) {
+        $resolvedTemplateType = resolveDocblockTypes($method, $boundTemplateType);
+
+        if ($resolvedTemplateType !== null) {
+            return $resolvedTemplateType;
+        }
+    }
+
     if (
         $typeNode->name === 'TCacheValue' &&
         $method->getDeclaringClass()->getName() === Illuminate\Cache\Repository::class
