@@ -2,6 +2,7 @@
 
 require_once $_composer_autoload_path ?? __DIR__.'/../vendor/autoload.php';
 
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use PHPStan\PhpDocParser\Ast\ConstExpr\ConstExprArrayNode;
 use PHPStan\PhpDocParser\Ast\ConstExpr\ConstExprFalseNode;
@@ -554,13 +555,22 @@ function resolveDocTags($docblock, $tag)
  * Recursively resolve docblock mixins.
  *
  * @param  \ReflectionClass  $class
+ * @param  \Illuminate\Support\Collection<class-string>  $encoutered
  * @return \Illuminate\Support\Collection<\ReflectionClass>
  */
-function resolveDocMixins($class)
+function resolveDocMixins($class, $encoutered = new Collection)
 {
+    if ($encoutered->contains($class->getName())) {
+        dump($class->getName());
+
+        return collect();
+    }
+
+    $encoutered[] = $class->getName();
+
     return resolveDocTags($class->getDocComment() ?: '', '@mixin ')
         ->map(fn ($mixin) => new ReflectionClass($mixin))
-        ->flatMap(fn ($mixin) => [$mixin, ...resolveDocMixins($mixin)]);
+        ->flatMap(fn ($mixin) => [$mixin, ...resolveDocMixins($mixin, $encoutered)]);
 }
 
 /**
