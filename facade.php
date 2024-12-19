@@ -561,8 +561,6 @@ function resolveDocTags($docblock, $tag)
 function resolveDocMixins($class, $encoutered = new Collection)
 {
     if ($encoutered->contains($class->getName())) {
-        dump($class->getName());
-
         return collect();
     }
 
