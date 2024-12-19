@@ -267,6 +267,10 @@ function resolveDocblockTypes($method, $typeNode, $depth = 1)
                 return 'array';
             }
 
+            if ($typeNode->name === 'int-mask-of') {
+                return 'int';
+            }
+
             $guessedFqcn = resolveClassImports($method->getDeclaringClass())->get($typeNode->name) ?? '\\'.$method->getDeclaringClass()->getNamespaceName().'\\'.$typeNode->name;
 
             foreach ([$typeNode->name, $guessedFqcn] as $name) {
