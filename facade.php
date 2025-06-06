@@ -763,6 +763,10 @@ function resolveDefaultValue($parameter)
         return '0755';
     }
 
+    if ($parameter['default'] instanceof DateTimeInterface) {
+        return get_class($parameter['default']);
+    }
+
     $default = json_encode($parameter['default']);
 
     return Str::of($default === false ? 'unknown' : $default)
