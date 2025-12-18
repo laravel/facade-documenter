@@ -271,7 +271,7 @@ function resolveDocblockTypes($method, $typeNode, $depth = 1)
                 return 'array';
             }
 
-            if ($typeNode->name === 'int-mask-of') {
+            if (in_array($typeNode->name, ['int-mask-of', 'non-negative-int'], strict: true)) {
                 return 'int';
             }
 
