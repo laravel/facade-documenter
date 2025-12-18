@@ -299,7 +299,7 @@ function resolveDocblockTypes($method, $typeNode, $depth = 1)
         }
 
         if ($typeNode instanceof ConditionalTypeNode) {
-            return handleConditionalType($method, $typeNode);
+            return resolveDocblockTypes($method, $typeNode->if).'|'.resolveDocblockTypes($method, $typeNode->else);
         }
 
         if ($typeNode instanceof NullableTypeNode) {
@@ -377,27 +377,6 @@ function resolveDocblockTypes($method, $typeNode, $depth = 1)
 
         return null;
     }
-}
-
-/**
- * Handle conditional types.
- *
- * @param  \ReflectionMethodDecorator  $method
- * @param  \PHPStan\PhpDocParser\Ast\Type\ConditionalTypeNode  $typeNode
- * @return string
- */
-function handleConditionalType($method, $typeNode)
-{
-    if (
-        in_array($method->getname(), ['pull', 'get']) &&
-        $method->getDeclaringClass()->getName() === Illuminate\Cache\Repository::class
-    ) {
-        return 'mixed';
-    }
-
-    throw new UnresolvableType('handleConditionalType', <<<MESSAGE
-        Unknown conditional type encountered on method [{$method->getDeclaringClass()->getName()}::{$method->getName()}].
-        MESSAGE);
 }
 
 /**
