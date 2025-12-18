@@ -399,51 +399,7 @@ function handleUnknownIdentifierType($method, $typeNode)
         }
     }
 
-    if (
-        $typeNode->name === 'TCacheValue' &&
-        $method->getDeclaringClass()->getName() === Illuminate\Cache\Repository::class
-    ) {
-        return 'mixed';
-    }
-
-    if (
-        $typeNode->name === 'TWhenParameter' &&
-        in_array(Illuminate\Support\Traits\Conditionable::class, class_uses_recursive($method->getDeclaringClass()->getName()))
-    ) {
-        return 'mixed';
-    }
-
-    if (
-        $typeNode->name === 'TWhenReturnType' &&
-        in_array(Illuminate\Support\Traits\Conditionable::class, class_uses_recursive($method->getDeclaringClass()->getName()))
-    ) {
-        return 'mixed';
-    }
-
-    if (
-        $typeNode->name === 'TUnlessParameter' &&
-        in_array(Illuminate\Support\Traits\Conditionable::class, class_uses_recursive($method->getDeclaringClass()->getName()))
-    ) {
-        return 'mixed';
-    }
-
-    if (
-        $typeNode->name === 'TUnlessReturnType' &&
-        in_array(Illuminate\Support\Traits\Conditionable::class, class_uses_recursive($method->getDeclaringClass()->getName()))
-    ) {
-        return 'mixed';
-    }
-
-    if (
-        $typeNode->name === 'TEnum' &&
-        $method->getDeclaringClass()->getName() === Illuminate\Http\Request::class
-    ) {
-        return 'object';
-    }
-
-    throw new UnresolvableType('handleUnknownIdentifierType', <<<MESSAGE
-        Unknown doctype [{$typeNode->name}] encountered, which is likely a generic, on method [{$method->getDeclaringClass()->getName()}::{$method->getName()}].
-        MESSAGE);
+    return 'mixed';
 }
 
 /**
