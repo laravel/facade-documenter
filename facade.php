@@ -29,6 +29,7 @@ use PHPStan\PhpDocParser\Parser\ConstExprParser;
 use PHPStan\PhpDocParser\Parser\PhpDocParser;
 use PHPStan\PhpDocParser\Parser\TokenIterator;
 use PHPStan\PhpDocParser\Parser\TypeParser;
+use PHPStan\PhpDocParser\ParserConfig;
 
 $linting = in_array('--lint', $argv);
 
@@ -205,8 +206,10 @@ function resolveReturnDocType($method)
  */
 function parseDocblock($docblock)
 {
-    return (new PhpDocParser(new TypeParser(new ConstExprParser), new ConstExprParser))->parse(
-        new TokenIterator((new Lexer)->tokenize($docblock ?: '/** */'))
+    $parserConfig = new ParserConfig([]);
+
+    return (new PhpDocParser($parserConfig, new TypeParser($parserConfig, new ConstExprParser($parserConfig)), new ConstExprParser($parserConfig)))->parse(
+        new TokenIterator((new Lexer($parserConfig))->tokenize($docblock ?: '/** */'))
     );
 }
 
@@ -697,7 +700,7 @@ function resolveDefaultValue($parameter)
     if ($parameter['name'] === '$mode' && $parameter['default'] === 493) {
         return '0755';
     }
-    
+
     if ($parameter['default'] instanceof DateTimeInterface) {
         return 'new \\'.get_class($parameter['default']);
     }
