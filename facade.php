@@ -46,14 +46,6 @@ collect($argv)
             return;
         }
 
-        $proxies->map(function ($proxy) {
-            if (class_exists($proxy)) {
-                return $proxy;
-            }
-
-            $guessedFqcn = resolveClassImports($method->getDeclaringClass())->get($typeNode->name) ?? '\\'.$method->getDeclaringClass()->getNamespaceName().'\\'.$typeNode->name;
-        });
-
         // Build a list of methods that are available on the Facade...
 
         $resolvedMethods = $proxies->map(fn ($fqcn) => new ReflectionClass($fqcn))
@@ -141,8 +133,27 @@ exit(0);
  */
 function resolveDocSees($class)
 {
+    $imports = resolveClassImports($class);
+
     return resolveDocTags($class->getDocComment() ?: '', '@see ')
-        ->reject(fn ($tag) => str_starts_with($tag, 'https://'));
+        ->reject(fn ($tag) => str_starts_with($tag, 'https://'))
+        ->map(function ($tag) use ($class, $imports) {
+            if (str_starts_with($tag, '\\')) {
+                return $tag;
+            }
+
+            if ($resolved = $imports->get($tag)) {
+                return $resolved;
+            }
+
+            $fqcn = '\\'.$class->getNamespaceName().'\\'.$tag;
+
+            if (class_exists($fqcn) || interface_exists($fqcn)) {
+                return $fqcn;
+            }
+
+            return $tag;
+        });
 }
 
 /**
