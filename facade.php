@@ -38,21 +38,13 @@ collect($argv)
     ->filter(fn ($arg) => ! str_starts_with($arg, '-'))
     ->map(fn ($class) => new ReflectionClass($class))
     ->each(function ($facade) use ($linting) {
-        $proxies = resolveDocSees($facade);
+        $proxies = resolveProxies($facade);
 
         if ($proxies->isEmpty()) {
             echo "Skipping [{$facade->getName()}] as no proxies were found.".PHP_EOL;
 
             return;
         }
-
-        $proxies->map(function ($proxy) {
-            if (class_exists($proxy)) {
-                return $proxy;
-            }
-
-            $guessedFqcn = resolveClassImports($method->getDeclaringClass())->get($typeNode->name) ?? '\\'.$method->getDeclaringClass()->getNamespaceName().'\\'.$typeNode->name;
-        });
 
         // Build a list of methods that are available on the Facade...
 
@@ -132,6 +124,30 @@ collect($argv)
 
 echo 'Done.';
 exit(0);
+
+/**
+ * Resolve the proxies for the Facade.
+ *
+ * @param  \ReflectionClass  $class
+ * @return \Illuminate\Support\Collection<class-string>
+ */
+function resolveProxies($class)
+{
+    return resolveDocSees($class)
+        ->map(function ($proxy) use ($class) {
+            if (class_exists($proxy)) {
+                return $proxy;
+            }
+
+            $guessedFqcn = resolveClassImports($class)->get($proxy) ?? '\\'.$class->getNamespaceName().'\\'.$proxy;
+
+            if (class_exists($guessedFqcn)) {
+                return $guessedFqcn;
+            }
+
+            return $proxy;
+        });
+}
 
 /**
  * Resolve the classes referenced in the @see docblocks.
