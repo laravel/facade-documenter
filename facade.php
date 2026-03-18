@@ -38,6 +38,7 @@ collect($argv)
     ->filter(fn ($arg) => ! str_starts_with($arg, '-'))
     ->map(fn ($class) => new ReflectionClass($class))
     ->each(function ($facade) use ($linting) {
+        $docSees = resolveDocSees($facade);
         $proxies = resolveProxies($facade);
 
         if ($proxies->isEmpty()) {
@@ -101,7 +102,7 @@ collect($argv)
         /**
         {$methods->join(PHP_EOL)}
          *
-        {$proxies->map(fn ($class) => " * @see {$class}")->merge($proxies->isNotEmpty() && $directMixins->isNotEmpty() ? [' *'] : [])->merge($directMixins->map(fn ($class) => " * @mixin {$class}"))->join(PHP_EOL)}
+        {$docSees->map(fn ($class) => " * @see {$class}")->merge($docSees->isNotEmpty() && $directMixins->isNotEmpty() ? [' *'] : [])->merge($directMixins->map(fn ($class) => " * @mixin {$class}"))->join(PHP_EOL)}
          */
         PHP;
 
@@ -537,6 +538,19 @@ function resolveDocMixins($class, $encoutered = new Collection)
     $encoutered[] = $class->getName();
 
     return resolveDocTags($class->getDocComment() ?: '', '@mixin ')
+        ->map(function ($mixin) use ($class) {
+            if (class_exists($mixin)) {
+                return $mixin;
+            }
+
+            $guessedFqcn = resolveClassImports($class)->get($mixin) ?? '\\'.$class->getNamespaceName().'\\'.$mixin;
+
+            if (class_exists($guessedFqcn)) {
+                return $guessedFqcn;
+            }
+
+            return $mixin;
+        })
         ->map(fn ($mixin) => new ReflectionClass($mixin))
         ->flatMap(fn ($mixin) => [$mixin, ...resolveDocMixins($mixin, $encoutered)]);
 }
