@@ -140,9 +140,9 @@ function resolveProxies($class)
 /**
  * Determine the fully qualified class name.
  *
- * @param  class-string  $class
+ * @param  string  $class
  * @param  \ReflectionClass  $source
- * @return string
+ * @return class-string
  */
 function determineFqcn($class, $source)
 {
