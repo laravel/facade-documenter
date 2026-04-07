@@ -327,15 +327,7 @@ function resolveDocblockTypes($method, $typeNode, $depth = 1)
             $determinedFqcn = determineFqcn($typeNode->name, $method->getDeclaringClass());
 
             foreach ([$typeNode->name, $determinedFqcn] as $name) {
-                if (class_exists($name)) {
-                    return Str::start((string) $name, '\\');
-                }
-
-                if (interface_exists($name)) {
-                    return Str::start((string) $name, '\\');
-                }
-
-                if (enum_exists($name)) {
+                if (class_exists($name) || interface_exists($name) || enum_exists($name)) {
                     return Str::start((string) $name, '\\');
                 }
 
